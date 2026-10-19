@@ -16,9 +16,7 @@
     "prepare": "node build.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0"
-  },
-  "devDependencies": {
+    "@supabase/supabase-js": "^2.39.0",
     "esbuild": "^0.24.0"
   }
 }
