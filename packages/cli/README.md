@@ -1,143 +1,145 @@
-# Talia CLI (`@talia/cli`)
+# Talia CLI (`talia`)
 
-用命令行(或让 AI 帮你)把备好的素材**批量搭成一个互动影游** —— 建节点、连分支、挂视频、配互动、发布,一条条命令或一句话搞定。**和 editor.taliaapp.com 用的是同一套引擎和规则**,所以 CLI 建出来的东西和编辑器里手搭的完全一致、绝不会造出"发布得出却玩不了"的坏数据。
+Build an **interactive film** from the command line — or let an AI do it for you: create nodes, wire branches, attach videos, configure interactions, publish. One command (or one sentence) at a time. **It runs on the same engine and the same invariants as [editor.taliaapp.com](https://editor.taliaapp.com)**, so whatever the CLI builds is identical to what you'd hand-build in the editor — it can never produce "publishes but won't play" bad data.
 
-> 适合:批量建树、从大纲一键生成、脚本化/可复现、让 AI 代劳。
-> 不适合(仍去编辑器):**产视频**(CLI 不生成素材)、**精细摆放**(tap/热点的精确位置、按钮在画面上的构图对着真帧拖更准)、**最终预览眼校**。
-> 最佳姿势 = **CLI 搭骨架 + 编辑器精修**。
+> **Good for:** batch-building trees, one-shot generation from an outline, scriptable/reproducible authoring, letting an AI do the work.
+> **Not for (still use the editor):** **producing video** (the CLI generates no media), **fine placement** (tap/hotspot exact positions and on-screen button composition are better dragged against a real frame), **final eyeball preview**.
+> **Best workflow = CLI for the skeleton + editor for the polish.**
 
 ---
 
-## 1. 安装 & 登录
+## 1. Install & log in
 
 ```bash
-# 公开仓一键装(推荐,无需 npm 账号):
+# One-line install from the public repo (recommended — no npm account needed):
 npm i -g github:CCRobert1997/talia-cli
-# 装好后直接用:
-talia <命令>
+# then just:
+talia <command>
 
-# 仓库内(内部/开发):
-npm run cli -- <命令>
+# Inside the monorepo (internal/dev):
+npm run cli -- <command>
 ```
-> 需要 Node 20+。下面示例统一写作 `talia <命令>`。
+> Requires Node 20+. Examples below are written as `talia <command>`.
 
-登录(用你的 Talia 创作者账号,和网页版同一个):
+Log in with your Talia creator account (the same one as the web app):
 ```bash
 talia login you@example.com
-talia whoami        # 确认已登录
+talia whoami        # confirm you're logged in
 ```
-你只能读写**自己**的项目(和网页版一样的权限)。
+You can only read/write **your own** projects (same permissions as the web app).
 
-> **连哪个库**:不传环境变量时,CLI 默认连 Talia 生产库(内置的 project URL + 匿名 anon key 本就是公开的,RLS 把每次写入限定到登录者本人)。要连自建/其他实例,设 `SUPABASE_URL` / `SUPABASE_ANON_KEY`(或写 `~/.talia/config.json`)覆盖。
+> **Which database:** with no env vars set, the CLI talks to Talia production (the built-in project URL + anon publishable key are public by design; RLS scopes every write to the logged-in owner). To point at a self-hosted / other instance, set `SUPABASE_URL` / `SUPABASE_ANON_KEY` (or write `~/.talia/config.json`).
 >
-> **给 agent 用**:所有读命令(`whoami`/`projects`/`choices`/`vars`/`achs`/`assets`/`validate` 等)加 `--json` 输出一行 JSON(行数据);写命令加 `--json` 输出 `{"ok":true,"id":"…"}`。比解析自然语言稳。
+> **For agents:** add `--json` to any command — read commands (`whoami` / `projects` / `choices` / `vars` / `achs` / `assets` / `validate` …) print one JSON line (the rows); write commands print `{"ok":true,"id":"…"}`. More reliable than parsing the human text. (`validate` still exits 2 when there's an error-severity issue.)
 
 ---
 
-## 2. 五分钟做一个 demo(视频已备好)
+## 2. Make a demo in five minutes (videos already prepared)
 
-假设你有 3 段视频,想做一个"电梯相遇 → 举报 / 沉默 → 结局"的分支 demo。
+Say you have 3 clips and want an "elevator encounter → report / stay silent → ending" branching demo.
 
-**① 把故事写成一个大纲文件 `story.md`:**
+**① Write the story as an outline file `story.md`:**
 ```markdown
-# 电梯相遇
-- 举报她 -> 举报线
-- 假装没看见 -> 沉默线
-# 举报线
-- 继续 -> 结局
-# 沉默线
-- 继续 -> 结局
-# 结局
+# Elevator encounter
+- Report her -> Report path
+- Pretend you saw nothing -> Silent path
+# Report path
+- Continue -> Ending
+# Silent path
+- Continue -> Ending
+# Ending
 ```
-规则:`#` 标题 = 一个节点;`- 文字 -> 目标节点标题` = 一个选项(按标题连线)。**第一个节点自动设为开始。**
+Rules: `#` heading = one node; `- text -> Target node title` = one choice (wired by title). **The first node is auto-set as Start.**
 
-**② 一把建出整棵树:**
+**② Build the whole tree at once:**
 ```bash
-talia project new "电梯 Demo"        # 记下返回的 <项目ID>
-talia import-outline <项目ID> story.md
-# ✓ Imported 4 nodes, 4 choices, Start = "电梯相遇"
+talia project new "Elevator Demo"      # note the returned <projectId>
+talia import-outline <projectId> story.md
+# ✓ Imported 4 nodes, 4 choices, Start = "Elevator encounter"
 ```
 
-**③ 传视频并挂到节点上:**
+**③ Upload video and attach it to a node:**
 ```bash
-talia asset upload <项目ID> elevator.mp4   # 返回一个 https://videos.taliaapp.com/... 链接
-talia choices <某节点ID>                   # 忘了节点/选项 ID 时,用列表命令查
-talia node set <节点ID> video <上一步的视频链接>
+talia asset upload <projectId> elevator.mp4   # returns a https://videos.taliaapp.com/... link
+talia choices <someNodeId>                     # use the list commands when you forget a node/choice id
+talia node set <nodeId> video <the link from above>
 ```
-> 查节点 ID:在编辑器打开项目能看到;或先 `talia import-outline` 后用 `talia choices`/项目页对照。
+> Node ids: visible when you open the project in the editor; or run `talia import-outline` then `talia choices` / check the project page.
 
-**④(可选)配互动玩法**,比如让某个选项变成"找热点":
+**④ (Optional) add an interaction**, e.g. turn a choice into a "find the hotspot":
 ```bash
-talia choice interaction <选项ID> '{"template":"hotspot_collect","hitGoto":"<目标节点ID>","defaultGoto":"<目标节点ID>"}'
-# 热点会自动预置好、发布校验会保证它能玩;精确位置到编辑器里拖
+talia choice interaction <choiceId> '{"template":"hotspot_collect","hitGoto":"<targetNodeId>","defaultGoto":"<targetNodeId>"}'
+# hotspots are pre-seeded and publish-validation guarantees it's playable; drag exact positions in the editor
 ```
 
-**⑤ 校验 + 发布:**
+**⑤ Validate + publish:**
 ```bash
-talia validate <项目ID>    # 跑和编辑器一样的 13 条发布校验,列出问题
-talia publish <项目ID>     # 通过后发布,玩家端即可见
+talia validate <projectId>    # runs the same 13 publish checks as the editor, lists issues
+talia publish <projectId>     # publishes once it passes; players can see it
 ```
 
-**⑥ 去编辑器精修**:`editor.taliaapp.com` 打开项目,对着真帧拖热点、调选项皮肤/位置、Preview 眼校。
+**⑥ Polish in the editor**: open the project at `editor.taliaapp.com`, drag hotspots against real frames, tune choice skin/position, eyeball-check with Preview.
 
 ---
 
-## 3. 大纲格式(`import-outline`)
+## 3. Outline format (`import-outline`)
 
 ```markdown
-# 节点标题
-- 选项文字 -> 目标节点标题
-- 另一个选项 -> 另一个节点
-# 另一个节点
+# Node title
+- Choice text -> Target node title
+- Another choice -> Another node
+# Another node
 ...
 ```
-- `#`~`######` 标题 → 一个节点(标题即节点名)。
-- `- 文字 -> 目标标题` → 从当前节点出的一个选项,连到标题匹配的节点。
-- 第一个节点 → 自动设为项目 Start。
-- 目标标题找不到 → 该选项目标留空 + 给出警告(不报错,方便先搭骨架)。
+- `#`…`######` heading → one node (the heading is the node name).
+- `- text -> Target title` → a choice out of the current node, wired to the node whose title matches.
+- The first node → auto-set as the project Start.
+- Unknown target title → that choice is left unset + a warning is printed (not an error — handy for sketching the skeleton first).
 
 ---
 
-## 4. 命令速查
+## 4. Command reference
 
-| 分类 | 命令 |
+| Group | Commands |
 |---|---|
-| 账号 | `login [email] [password]` · `whoami` · `logout` |
-| 项目 | `projects` · `project new <标题>` · `project rm <id>` · `project theme <id> <preset\|clear\|custom>` |
-| 项目·主题背景 | `project theme <id> warm_dark`(6 预设)· `project theme <id> clear` · `project theme <id> custom "#RRGGBB,#RRGGBB" [dark]`(2-5 色) |
-| 节点 | `node add <项目>` · `node set <节点> <title\|video\|image\|auto> <值>` · `node start <项目> <节点>` |
-| 选项 | `choice add <节点> [文字] [目标]` · `choice set <choice> <label\|target> <值>` · `choice rm <choice>` · `choices <节点>` |
-| 选项·呈现 | `choice present <choice> '{"skin":"preset:gilded","size":"l","font":"playfair"}'` |
-| 选项·手势 | `choice tap <choice> <x> <y> <w> <h> [提示]`(归一化 0..1) |
-| 选项·高级玩法 | `choice interaction <choice> '{"template":"hotspot_collect",...}'` |
-| 变量 | `var add <项目> <名> <bool\|int> [默认值]` · `vars <项目>` · `var rm <id>` |
-| 成就 | `ach add <项目> <名> <emoji> [描述]` · `achs <项目>` · `ach rm <id>` |
-| 素材 | `asset upload <项目> <文件>` · `assets <项目>` · `asset rm <id>` |
-| 建树 | `import-outline <项目> <file.md>` |
-| 发布 | `validate <项目>` · `publish <项目>` |
+| Account | `login [email] [password]` · `whoami` · `logout` |
+| Project | `projects` · `project new <title>` · `project rm <id>` · `project theme <id> <preset\|clear\|custom>` |
+| Project · theme bg | `project theme <id> warm_dark` (6 presets) · `project theme <id> clear` · `project theme <id> custom "#RRGGBB,#RRGGBB" [dark]` (2–5 colors) |
+| Node | `node add <project>` · `node set <node> <title\|video\|image\|auto> <value>` · `node start <project> <node>` |
+| Choice | `choice add <node> [text] [target]` · `choice set <choice> <label\|target> <value>` · `choice rm <choice>` · `choices <node>` |
+| Choice · presentation | `choice present <choice> '{"skin":"preset:gilded","size":"l","font":"playfair"}'` |
+| Choice · gesture | `choice tap <choice> <x> <y> <w> <h> [hint]` (normalized 0..1) |
+| Choice · advanced | `choice interaction <choice> '{"template":"hotspot_collect",...}'` |
+| Variable | `var add <project> <name> <bool\|int> [default]` · `vars <project>` · `var rm <id>` |
+| Achievement | `ach add <project> <name> <emoji> [description]` · `achs <project>` · `ach rm <id>` |
+| Asset | `asset upload <project> <file>` · `assets <project>` · `asset rm <id>` |
+| Build tree | `import-outline <project> <file.md>` |
+| Publish | `validate <project>` · `publish <project>` |
 
-**高级玩法模板**(`choice interaction` 的 `template`):`hotspot_collect`(找热点)/ `bullet_time`(限时躲避)/ `combo_rated`(连击)/ `wipe_reveal`(擦除揭示)/ `roaming_reticle`(游标瞄准)/ `timing_meter`(节奏条)。字段:`hitGoto`/`missGoto`/`defaultGoto`(节点 ID)、`params`(模板参数,如 `{"needK":3}`)。
+**Global flag:** `--json` on any command (see §1).
 
-**皮肤**(`choice present` 的 `skin`):`default` / `preset:outline` / `preset:gilded` / `preset:film` / `preset:romance` / `image:<r2链接>`。字体:`modak`/`playfair`/`bebas`/`oswald`/`pacifico`/`anton`/`noto_sans_sc`/`noto_serif_sc`/`ma_shan_zheng`/`long_cang`/`cairo`。尺寸:`s`/`m`/`l`。
+**Advanced interaction templates** (`choice interaction`'s `template`): `hotspot_collect` (find the hotspot) / `bullet_time` (timed dodge) / `combo_rated` (combo) / `wipe_reveal` (wipe to reveal) / `roaming_reticle` (roaming aim) / `timing_meter` (rhythm bar). Fields: `hitGoto` / `missGoto` / `defaultGoto` (node ids), `params` (template params, e.g. `{"needK":3}`).
 
----
-
-## 5. 让 AI 代劳
-
-CLI 人能敲,**AI/agent 也能敲**。所以你也可以直接对着 Claude 这类工具说:
-
-> "把这 5 段视频做成一个三分支互动 demo,主角在电梯里决定要不要举报她"
-
-让它帮你**生成大纲 + 跑上面这串命令 + 传素材 + 配玩法 + 校验发布**。你从"逐个点编辑器"变成"描述需求"。
+**Skins** (`choice present`'s `skin`): `default` / `preset:outline` / `preset:gilded` / `preset:film` / `preset:romance` / `image:<r2 link>`. Fonts: `modak` / `playfair` / `bebas` / `oswald` / `pacifico` / `anton` / `noto_sans_sc` / `noto_serif_sc` / `ma_shan_zheng` / `long_cang` / `cairo`. Sizes: `s` / `m` / `l`.
 
 ---
 
-## 6. 说明 & 注意
+## 5. Let an AI drive it
 
-- **权限**:所有操作在你自己账号名下,只能动自己的项目(和网页版一致)。
-- **别在正式作品上乱试**:`project rm` 会连级删除。测试请新建临时项目、用完删。
-- **发布校验是主防线**:`validate` 有 error 就发不出去(比如空热点、选项没目标);按提示补齐。
-- **视频/图片**:`asset upload` 传到 Talia 的 CDN 并登记;`node set video <链接>` 挂到节点。
-- **精细视觉**去编辑器:CLI 适合结构和粗配,tap/热点的精确位置对着真帧拖更准。
+A human can type these commands — **so can an AI/agent**. You can tell a tool like Claude:
 
-有问题或想加命令,反馈给 Talia 团队。
+> "Turn these 5 clips into a three-branch interactive demo where the lead decides, in an elevator, whether to report her."
+
+and let it **generate the outline + run the commands above + upload the assets + configure the interactions + validate & publish**. You go from "clicking through the editor" to "describing what you want." The `--json` flag makes every command's output easy to parse.
+
+---
+
+## 6. Notes & caveats
+
+- **Permissions:** everything runs under your own account; you can only touch your own projects (same as the web app).
+- **Don't experiment on live work:** `project rm` cascades. Test on a fresh throwaway project and delete it when done.
+- **Publish validation is the main guard:** `validate` with any error blocks publishing (e.g. empty hotspot, a choice with no target); follow the hints to fix.
+- **Video/images:** `asset upload` sends them to Talia's CDN and registers them; `node set video <link>` attaches to a node.
+- **Fine visuals belong in the editor:** the CLI is great for structure and rough config; tap/hotspot exact positions are better dragged against a real frame.
+
+Questions or want a new command? Reach out to the Talia team.
