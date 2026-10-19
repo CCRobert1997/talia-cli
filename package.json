@@ -9,14 +9,8 @@
   "repository": { "type": "git", "url": "git+https://github.com/CCRobert1997/talia-cli.git" },
   "bin": { "talia": "dist/talia.js" },
   "engines": { "node": ">=20" },
-  "workspaces": ["packages/*"],
-  "files": ["dist", "packages", "build.mjs", "README.md", "LICENSE"],
-  "scripts": {
-    "build": "node build.mjs",
-    "prepare": "node build.mjs"
-  },
+  "files": ["dist", "packages", "README.md", "LICENSE"],
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
-    "esbuild": "^0.24.0"
+    "@supabase/supabase-js": "^2.39.0"
   }
 }
