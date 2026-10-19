@@ -1,0 +1,14 @@
+{
+  "name": "@talia/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Talia authoring CLI — a thin shell over @talia/authoring-core ops (ADR-001 phase 3). Runs on Node 22 native TS, no build step.",
+  "bin": {
+    "talia": "./src/index.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "@talia/authoring-core": "*"
+  }
+}

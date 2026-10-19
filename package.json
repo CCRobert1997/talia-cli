@@ -1,0 +1,24 @@
+{
+  "name": "talia-cli",
+  "version": "0.0.1",
+  "private": false,
+  "type": "module",
+  "description": "Talia authoring CLI — build interactive films from the command line (or let an AI do it). Same engine + invariants as editor.taliaapp.com.",
+  "license": "MIT",
+  "homepage": "https://github.com/CCRobert1997/talia-cli",
+  "repository": { "type": "git", "url": "git+https://github.com/CCRobert1997/talia-cli.git" },
+  "bin": { "talia": "dist/talia.js" },
+  "engines": { "node": ">=20" },
+  "workspaces": ["packages/*"],
+  "files": ["dist", "packages", "build.mjs", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "node build.mjs",
+    "prepare": "node build.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
+  }
+}

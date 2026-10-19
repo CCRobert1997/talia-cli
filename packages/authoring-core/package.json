@@ -1,0 +1,17 @@
+{
+  "name": "@talia/authoring-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Talia authoring domain — shared types, invariants, validation, and (later) mutation ops. Consumed by the editor app and future CLI/MCP. Framework-agnostic: no React, no DOM, no browser globals. See ../../docs/adr-authoring-tooling.md",
+  "exports": {
+    ".": "./src/index.ts",
+    "./model": "./src/model/index.ts",
+    "./invariants/*": "./src/invariants/*.ts",
+    "./validation": "./src/validation/index.ts",
+    "./ops/*": "./src/ops/*.ts"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2"
+  }
+}
